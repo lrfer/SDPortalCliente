@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "WS.Server": {
+      "commandName": "Project",
+      "commandLineArgs": "51888\r\n51855"
+    },
+  }
+}
