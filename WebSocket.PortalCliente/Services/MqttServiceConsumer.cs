@@ -37,7 +37,13 @@ namespace Application.Services
                      {
                          f.WithTopic(Const.QueuePedidos);
 
-                     }).Build();
+                     })
+                     .WithTopicFilter(f => 
+                     {
+                         f.WithTopic(Const.QueuePedidoRemover);
+                     }
+                     )
+                     .Build();
 
 
             _client.ApplicationMessageReceivedAsync += HandleMessageAsync;
@@ -54,6 +60,12 @@ namespace Application.Services
                 var result = JsonSerializer.Deserialize<Pedido>(payload);
                 if (result is not null)
                     await _pedidoService.ModificarPedidoQueue(result);
+            }
+            if (e.ApplicationMessage.Topic.Equals(Const.QueuePedidos))
+            {
+                var result = JsonSerializer.Deserialize<Pedido>(payload);
+                if (result is not null)
+                    await _pedidoService.SicronizarDelete(result);
             }
         }
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)

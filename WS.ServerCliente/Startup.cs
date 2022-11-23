@@ -21,7 +21,6 @@ namespace StartupService
 
         public async Task ReceiveConnection(HttpListenerContext context)
         {
-            Console.WriteLine($"Cliente Conectado");
             if (context.Request.IsWebSocketRequest)
             {
                 HttpListenerWebSocketContext webSocketContext = await context.AcceptWebSocketAsync(null);
@@ -41,6 +40,7 @@ namespace StartupService
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
+            Console.WriteLine($"Aplicação de pé no endereçohttp://localhost:{port}/");
             var conectionString = $"http://localhost:{port}/";
             httpListener.Prefixes.Add(conectionString);
             httpListener.Start();

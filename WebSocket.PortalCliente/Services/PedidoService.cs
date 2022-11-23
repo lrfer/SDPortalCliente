@@ -30,7 +30,7 @@ namespace Application.Services
                 ClientId = clientId
             };
 
-            return await _pedidoRepository.CriarPedido(pedido);
+            return (await _pedidoRepository.CriarPedido(pedido)).ToUpper();
         }
 
         public async Task<string> ModificarPedido(Pedido pedido)
@@ -138,7 +138,10 @@ namespace Application.Services
             await _produtoRepository.ModificarProduto(produto);
             
         }
-
+        public async Task SicronizarDelete(Pedido pedido)
+        {
+            await _pedidoRepository.DeletarLocalDoBanco(pedido);
+        }
 
     }
 }

@@ -22,14 +22,22 @@ namespace Application.Repository
             this.pedidosBanco = new();
         }
 
-        public Task<int> ApagarPedido(Pedido pedido)
+        public async Task<int> ApagarPedido(Pedido pedido)
         {
-            throw new NotImplementedException();
+            var ped = await ListarPedido(pedido.ClientId, pedido.OrderId);
+              if(ped is not null)
+            {
+                pedidosCache.Remove(ped);
+                await EnviarDelete(ped);
+                return 1;
+            }
+            else
+                return 0;
         }
 
         public async Task<string> CriarPedido(Pedido pedido)
         {
-            var orderId = Guid.NewGuid().ToString();
+            var orderId = Guid.NewGuid().ToString().ToUpper();
             var pedidoBanco = await ListarPedido(pedido.ClientId,orderId);
             if (pedidoBanco is null)
             {
@@ -44,9 +52,9 @@ namespace Application.Repository
         public async Task<Pedido> ListarPedido(string clientId, string OrderId)
         {
             var pedidoLocal = pedidosCache.FirstOrDefault(x => x.ClientId == clientId && x.OrderId == OrderId);
+            var pedidoBanco = pedidosBanco.FirstOrDefault(x => x.ClientId == clientId && x.OrderId == OrderId);
             if (pedidoLocal is null)
             {
-                var pedidoBanco = pedidosBanco.FirstOrDefault(x => x.ClientId == clientId && x.OrderId == OrderId);
                 if (pedidoBanco is null)
                     return null;
                 else
@@ -56,27 +64,45 @@ namespace Application.Repository
                 }
 
             }
+            else if(pedidoBanco is not null)
+            {
+                if(pedidoLocal.ProdutoId == pedidoBanco.ProdutoId)
+                    return pedidoLocal;
+                else{
+                        SyncBanco();
+                        return pedidoBanco;
+                    }
+            }
             else
                 return pedidoLocal;
         }
 
-        public Task<List<Pedido>> ListarPedidos(string clientId)
+        public async Task<List<Pedido>> ListarPedidos(string clientId)
         {
-            throw new NotImplementedException();
+            return pedidosCache;
         }
 
         public async Task<int> ModificarPedido(Pedido pedido)
         {
-            var ped = ListarPedido(pedido.ClientId, pedido.OrderId);
+            var ped = await ListarPedido(pedido.ClientId, pedido.OrderId);
             if (ped is not null)
             {
-                pedidosCache.FirstOrDefault(x => x.OrderId == pedido.OrderId);
-                await SalvarNoBanco(pedido);
+                ped.ClientId = pedido.ClientId;
+                ped.OrderId = pedido.OrderId;
+                ped.Name = pedido.Name;
+                ped.ProdutoId = pedido.ProdutoId;
+                ped.Quantity = pedido.Quantity;
+                ped.Price = pedido.Price;
+
+                await SalvarNoBanco(ped);
                 return 1;
 
             }
             else
+            {
+                pedidosCache.Add(pedido);
                 return 0;
+            }
             
         }
         public async Task SalvarDoBanco(Pedido pedido)
@@ -92,6 +118,17 @@ namespace Application.Repository
             }
         }
 
+        public async Task DeletarLocalDoBanco(Pedido pedido)
+        {
+            var pedidoLocal = pedidosCache.FirstOrDefault(x => x.ClientId == pedido.ClientId && x.OrderId == pedido.OrderId);
+            if (pedidoLocal is not null)
+            {
+                pedidosCache.Remove(pedidoLocal);
+                pedidosBanco.Remove(pedidoLocal);
+            }
+
+        }
+
         #region "Metodos privados"
         private void SyncBanco()
         {
@@ -102,7 +139,19 @@ namespace Application.Repository
         private async Task SalvarNoBanco(Pedido pedido)
         {
             string json = JsonSerializer.Serialize(pedido);
-            await MqttServicePublisher.MqttServiceSendMsg(json, Const.QueuePedidos);
+            try
+            {
+                await MqttServicePublisher.MqttServiceSendMsg(json, Const.QueuePedidos);
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
+        }
+        private async Task EnviarDelete(Pedido pedido)
+        {
+            string json = JsonSerializer.Serialize(pedido);
+            await MqttServicePublisher.MqttServiceSendMsg(json, Const.QueuePedidoRemover);
         }
 
         #endregion

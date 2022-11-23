@@ -17,6 +17,7 @@ namespace Application.Services.Interfaces
         Task<string> ApagarPedido(string clientId, string orderId);
 
         Task ModificarPedidoQueue(Pedido pedido);
+        Task SicronizarDelete(Pedido pedido);
 
     }
 }

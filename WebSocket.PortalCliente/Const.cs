@@ -4,6 +4,7 @@
     {
         public readonly static string ConnectionMqtt = "127.0.0.1";
         public readonly static string QueuePedidos= "PEDIDO/";
+        public readonly static string QueuePedidoRemover= "PEDIDO_REMOVER/";
         public readonly static string QueueProdutoRemover = "PRODUTOS_REMOVER/";
         public readonly static int ConnectionMqttPort = 1883;
         public static readonly Guid ClientId = Guid.NewGuid();
